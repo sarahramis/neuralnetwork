@@ -47,10 +47,10 @@ class Layer:
         self.activation_function = activation_function
 
     def activation(self, input_values):
-        print(self.weights.shape)
-        print(input_values.shape)
-        z = np.matmul(np.transpose(self.weights),
-                      input_values)
+        #print(self.weights.shape)
+        #print(input_values.shape)
+        z = np.sum(np.matmul(np.transpose(self.weights),
+                      input_values))
         return self.activation_function(z+self.bias)
 
     def __str__(self):
@@ -66,14 +66,39 @@ class NeuralNetwork:
                 # num inputs is number of neurons in
                 # previous layer
                 num_inputs = layer_sizes[i-1]
+                print(f"num_inputs in initialisation {num_inputs}")
                 # num_neurons defined by user
                 num_neurons = layer_size
                 layers.append(Layer(
                     num_inputs=num_inputs,
                     num_neurons=num_neurons,
                     activation_function=layer_activations[i]))
+            else:  #is an input layer
+                num_inputs = layer_size
+                num_neurons = layer_size
+                input_layer = Layer(
+                    num_inputs=num_inputs,
+                    num_neurons=num_neurons,
+                    activation_function=layer_activations[i])
+                # no weights on inputs
+                input_layer.weights = np.array([])
+                layers.append(input_layer)
         self.layers = layers
 
+    def activation(self, input_values):
+        self.activation_values = []    # store for backprop
+        for i, layer in enumerate(self.layers):
+            print(f"Layer {i} input shape {input_values.shape} ")
+            print(f"input {input_values}")
+            if i > 0:
+                input_values = layer.activation(input_values)
+            else:
+                input_values = input_values
+            self.activation_values.append(input_values)
+            print(f"output {input_values}")
+            print(f"output shape {input_values.shape}")
+            print("----")
+        return input_values
 
     def __str__(self):
         final_string = "Neural Network:\n"
@@ -116,17 +141,19 @@ y_true = np.random.random([10,])
 y_pred = softmax(np.random.random([10,]))
 # https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.round_.html
 
-y_true = np.round(y_true,0)
+"""y_true = np.round(y_true,0)
 print(y_true)
 print(y_pred)
-print(crossentropy_loss(y_true, y_pred))
+print(crossentropy_loss(y_true, y_pred))"""
 
-L = Layer(2,1, activation_function=relu)
+L = Layer(2, 1, activation_function=relu)
 L.weights[0] = 1
 L.weights[1] = -0.5
-L.bias = -5
-inputs = np.array([1,2])
+L.bias = 0
+inputs = np.array([2,1])
 print(L.activation(inputs))
 print(L)
-NN = NeuralNetwork([100, 64, 1], [same, relu, sigmoid])
+NN = NeuralNetwork([4, 8, 1], [same, relu, sigmoid])
 print(NN)
+input = np.array([-1,1,-1,1])
+print(NN.activation(input))
