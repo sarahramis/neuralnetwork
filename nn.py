@@ -1,8 +1,14 @@
+import random
+
 import tensorflow as tf
 
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
+
+
+def same(x):
+    return x
 
 
 def relu(x):
@@ -28,6 +34,52 @@ def crossentropy_loss(true_y,pred_y):
     part2 = np.matmul(true_y, np.log(pred_y))
     return -1*(part1.sum() + part2.sum())
 
+
+class Layer:
+    def __init__(self, num_inputs, num_neurons,
+                 activation_function=relu):
+        self.num_neurons = num_neurons
+        self.num_inputs = num_inputs
+        # each input has a weight going to each neuron
+        self.weights = np.random.random(
+            [num_inputs,num_neurons])
+        self.bias = np.random.random([num_neurons,1])
+        self.activation_function = activation_function
+
+    def activation(self, input_values):
+        print(self.weights.shape)
+        print(input_values.shape)
+        z = np.matmul(np.transpose(self.weights),
+                      input_values)
+        return self.activation_function(z+self.bias)
+
+    def __str__(self):
+        return f"Layer of {self.num_neurons} neurons, each with {self.num_inputs} inputs, giving {self.num_inputs*self.num_neurons} weights."
+
+
+class NeuralNetwork:
+    def __init__(self, layer_sizes, layer_activations):
+        layers = []
+        # assume first layer is an input layer
+        for i, layer_size in enumerate(layer_sizes):
+            if i > 0:
+                # num inputs is number of neurons in
+                # previous layer
+                num_inputs = layer_sizes[i-1]
+                # num_neurons defined by user
+                num_neurons = layer_size
+                layers.append(Layer(
+                    num_inputs=num_inputs,
+                    num_neurons=num_neurons,
+                    activation_function=layer_activations[i]))
+        self.layers = layers
+
+
+    def __str__(self):
+        final_string = "Neural Network:\n"
+        for layer in self.layers:
+            final_string += str(layer) + "\n"
+        return final_string
 
 
 
@@ -69,3 +121,12 @@ print(y_true)
 print(y_pred)
 print(crossentropy_loss(y_true, y_pred))
 
+L = Layer(2,1, activation_function=relu)
+L.weights[0] = 1
+L.weights[1] = -0.5
+L.bias = -5
+inputs = np.array([1,2])
+print(L.activation(inputs))
+print(L)
+NN = NeuralNetwork([100, 64, 1], [same, relu, sigmoid])
+print(NN)
