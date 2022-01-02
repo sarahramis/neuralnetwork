@@ -135,9 +135,37 @@ class NumpyNeuralNet():
             self.p['a2'] = self.softmax(self.p['z2'])
             return self.p['a2']
 
+    def accuracy(self, X_test, y_test):
+        y_hat_softmaxs = []
+        for x, y in zip(X_test, y_test):
+            # calualate neural net's best estimate
+            y_hat = self.activation(x)
+            # force to choose one class for both
+            y_hat_softmax = np.argmax(y_hat)
+            y_softmax = np.argmax(y)
+            # compare estimate to ground truth
+            y_hat_softmaxs.append(y_hat_softmax == y_softmax)
+        # mean result of comparisons
+        return np.mean(y_hat_softmaxs)
+
+    def train(self, X_train, y_train, X_test, y_test,
+              learning_rate=0.001, num_epochs=20):
+        epoch = 1
+        while epoch <= num_epochs:
+            # TODO
+            # run through all training examples
+            # find errors, backpropagate, and get resulting
+            # weight changes based on gradient descent
+
+            # calculate accuracy on test set
+            acc = self.accuracy(X_test, y_test)
+            print(f'Epoch {epoch} test acc {acc}')
+            epoch += 1
 
 
 neural_net = NumpyNeuralNet(input_size=784, hidden_sizes=[128, 64],
                             output_size=10, use_sigmoid=True)
 
-print(neural_net.activation(X_train[0])) 
+neural_net.train(X_train, y_train, X_test, y_test, learning_rate=0.001, num_epochs=20)
+
+
