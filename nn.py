@@ -4,7 +4,6 @@ import tensorflow as tf
 import pickle
 
 REDOWNLOAD = False
-np.random.seed(26)
 
 # needs to be run with redownload set to True the first time
 # this downloads mnist using tensorflow
@@ -58,7 +57,11 @@ y_train, y_test = to_categorical(y_train), to_categorical(y_test)
 
 
 class NumpyNeuralNet():
-    def __init__(self, layers, use_sigmoid=False):
+    def __init__(self, input_size, hidden_sizes, output_size, use_sigmoid=False):
+        if len(hidden_sizes) > 1:
+            self.two_hidden = True
+        else:
+            self.two_hidden = False
         if use_sigmoid:
             self.activation_function = self.sigmoid
             self.activation_function_back = self.sigmoid_backprop
@@ -66,9 +69,47 @@ class NumpyNeuralNet():
             self.activation_function = self.relu
             self.activation_function_back = self.relu_backprop
 
-        self.layers = layers
+        self.layers = [input_size] + hidden_sizes + [output_size]
+
+        if self.two_hidden:
+            # weight initialisation from https://mlfromscratch.com/neural-network-tutorial/#/
+            self.params = {
+                'w1': np.random.randn(hidden_sizes[0], input_size) * np.sqrt(1. / hidden_sizes[0]),
+                'w2': np.random.randn(hidden_sizes[1], hidden_sizes[0]) * np.sqrt(1. / hidden_sizes[1]),
+                'w3': np.random.randn(output_size, hidden_sizes[1]) * np.sqrt(1. / output_size)
+            }
+        else:
+            # weight initialisation from https://mlfromscratch.com/neural-network-tutorial/#/
+            self.params = {
+                'w1': np.random.randn(hidden_sizes[0], input_size) * np.sqrt(1. / hidden_sizes[0]),
+                'w2': np.random.randn(output_size, hidden_sizes[0]) * np.sqrt(1. / output_size)
+            }
 
     # https://numpy.org/doc/stable/reference/generated/numpy.where.html
+    # https://stackoverflow.com/questions/46411180/implement-relu-derivative-in-python-numpy
+    def relu(self, x):
+        return np.where(x > 0, x, 0)
+
+    def relu_backprop(self, x):
+        x[x <= 0] = 0
+        x[x > 0] = 1
+        return x
+
+    def sigmoid(self, x):
+        return 1 / (1 + np.exp(-x))
+
+    def sigmoid_backprop(self, x):
+        return (np.exp(-x)) / ((np.exp(-x) + 1) ** 2)
+
+    def softmax(self, x):
+        exp_x = np.exp(x - x.max())
+        return exp_x / np.sum(exp_x, axis=0)
+
+    def softmax_backprop(self, x):
+        exp_x = np.exp(x - x.max())
+        return exp_x / np.sum(exp_x, axis=0) * (1 - exp_x / np.sum(exp_x, axis=0))
+
+  # https://numpy.org/doc/stable/reference/generated/numpy.where.html
     # https://stackoverflow.com/questions/46411180/implement-relu-derivative-in-python-numpy
     def relu(self, x):
         return np.where(x > 0, x, 0)
@@ -104,6 +145,6 @@ class NumpyNeuralNet():
         # TO DO
         pass
 
-
-neural_net = NumpyNeuralNet(layers=[784, 64, 10], use_sigmoid=True)
+neural_net = NumpyNeuralNet(input_size=784, hidden_sizes=[128],
+                            output_size=10, use_sigmoid=False)
 
