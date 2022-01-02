@@ -4,6 +4,7 @@ import tensorflow as tf
 import pickle
 
 REDOWNLOAD = False
+np.random.seed(26)
 
 # needs to be run with redownload set to True the first time
 # this downloads mnist using tensorflow
@@ -45,23 +46,36 @@ def get_mnist(redownload=False):
     return X_train, y_train, X_test, y_test, class_names
 
 
-
+# Download MNIST or load from local disk
 X_train, y_train, X_test, y_test, class_names = get_mnist(redownload=REDOWNLOAD)
 #print(X_train.shape)
+# reshape data for flat input layer on neural net
 X_train = np.reshape(X_train, (X_train.shape[0], 784))
 X_test = np.reshape(X_test, (X_test.shape[0], 784))
 #print(X_train.shape)
 
-X_train, X_test = (X_train / 255).astype('float32'), (X_test / 255).astype('float32')
+# normalise data
+X_train, X_test = (X_train / 255), (X_test / 255)
+# convert output data into 10 neuron output layer categories
+# one hot encoding.
 y_train, y_test = to_categorical(y_train), to_categorical(y_test)
 
 
+# Classification Neural network class that allows 1 or 2 hidden layers, adjustable numbers
+# of neurons in all layers, softmax on output layer,
+# and either all relu or all sigmoid on other layers.
+# Inspired by https://mlfromscratch.com/neural-network-tutorial/#/
+# and https://www.kaggle.com/accepteddoge/fashion-mnist-with-numpy-neural-networks
+# and https://github.com/SkalskiP/ILearnDeepLearning.py/blob/master/01_mysteries_of_neural_networks/03_numpy_neural_net/Numpy%20deep%20neural%20network.ipynb
 class NumpyNeuralNet():
     def __init__(self, input_size, hidden_sizes, output_size, use_sigmoid=False):
+        # check if one or two hidden layers
+        # note - hidden_sizes must be a list even if it is just one hidden layer.
         if len(hidden_sizes) > 1:
             self.two_hidden = True
         else:
             self.two_hidden = False
+        # store the actual activation function directly in the object
         if use_sigmoid:
             self.activation_function = self.sigmoid
             self.activation_function_back = self.sigmoid_backprop
@@ -69,21 +83,18 @@ class NumpyNeuralNet():
             self.activation_function = self.relu
             self.activation_function_back = self.relu_backprop
 
-        self.layers = [input_size] + hidden_sizes + [output_size]
-
+        # if two hidden layers initialise 3 weight sets (w1i, w2j, w3k),
+        # otherwise 2 (w1i, w2j)
+        self.p = dict()
         if self.two_hidden:
             # weight initialisation from https://mlfromscratch.com/neural-network-tutorial/#/
-            self.params = {
-                'w1': np.random.randn(hidden_sizes[0], input_size) * np.sqrt(1. / hidden_sizes[0]),
-                'w2': np.random.randn(hidden_sizes[1], hidden_sizes[0]) * np.sqrt(1. / hidden_sizes[1]),
-                'w3': np.random.randn(output_size, hidden_sizes[1]) * np.sqrt(1. / output_size)
-            }
+            self.p['w1'] = np.random.randn(hidden_sizes[0], input_size) * np.sqrt(1. / hidden_sizes[0])
+            self.p['w2'] = np.random.randn(hidden_sizes[1], hidden_sizes[0]) * np.sqrt(1. / hidden_sizes[1])
+            self.p['w3'] = np.random.randn(output_size, hidden_sizes[1]) * np.sqrt(1. / output_size)
         else:
             # weight initialisation from https://mlfromscratch.com/neural-network-tutorial/#/
-            self.params = {
-                'w1': np.random.randn(hidden_sizes[0], input_size) * np.sqrt(1. / hidden_sizes[0]),
-                'w2': np.random.randn(output_size, hidden_sizes[0]) * np.sqrt(1. / output_size)
-            }
+            self.p['w1'] = np.random.randn(hidden_sizes[0], input_size) * np.sqrt(1. / hidden_sizes[0])
+            self.p['w2'] = np.random.randn(output_size, hidden_sizes[0]) * np.sqrt(1. / output_size)
 
     # https://numpy.org/doc/stable/reference/generated/numpy.where.html
     # https://stackoverflow.com/questions/46411180/implement-relu-derivative-in-python-numpy
@@ -110,17 +121,23 @@ class NumpyNeuralNet():
         return exp_x / np.sum(exp_x, axis=0) * (1 - exp_x / np.sum(exp_x, axis=0))
 
     def activation(self, input_values):
-        # TO DO
-        pass
+        self.p['a0'] = input_values
+        self.p['z1'] = np.dot(self.p['w1'], self.p['a0'])
+        self.p['a1'] = self.activation_function(self.p['z1'])
+        if self.two_hidden:
+            self.p['z2'] = np.dot(self.p['w2'], self.p['a1'])
+            self.p['a2'] = self.activation_function(self.p['z2'])
+            self.p['z3'] = np.dot(self.p['w3'], self.p['a2'])
+            self.p['a3'] = self.softmax(self.p['z3'])
+            return self.p['a3']
+        else:
+            self.p['z2'] = np.dot(self.p['w2'], self.p['a1'])
+            self.p['a2'] = self.softmax(self.p['z2'])
+            return self.p['a2']
 
-    def activation_backprop(self, output_values, correct_outputs):
-        # TO DO
-        pass
 
-    def train(self, X, y):
-        # TO DO
-        pass
 
-neural_net = NumpyNeuralNet(input_size=784, hidden_sizes=[128],
-                            output_size=10, use_sigmoid=False)
+neural_net = NumpyNeuralNet(input_size=784, hidden_sizes=[128, 64],
+                            output_size=10, use_sigmoid=True)
 
+print(neural_net.activation(X_train[0])) 
